@@ -1,5 +1,6 @@
 package com.aiposts.ui.screens
 
+import android.widget.Toast
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
@@ -17,6 +18,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.aiposts.model.CreatePostState
@@ -35,6 +38,9 @@ fun CreatePostScreen(
     onSaveDraft: () -> Unit,
     onSchedule: () -> Unit
 ) {
+    val clipboard = LocalClipboardManager.current
+    val context = LocalContext.current
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -84,8 +90,18 @@ fun CreatePostScreen(
         Text("Live Preview", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
 
         GlassCard(modifier = Modifier.fillMaxWidth()) {
-            AnimatedContent(targetState = state.preview, label = "previewAnimation") { preview ->
-                Text(preview, style = MaterialTheme.typography.bodyLarge, color = TextSecondary)
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                AnimatedContent(targetState = state.preview, label = "previewAnimation") { preview ->
+                    Text(preview, style = MaterialTheme.typography.bodyLarge, color = TextSecondary)
+                }
+                PrimaryButton(
+                    text = "Copy Post",
+                    onClick = {
+                        clipboard.setText(androidx.compose.ui.text.AnnotatedString(state.preview))
+                        Toast.makeText(context, "Post copied. Ready to paste on LinkedIn.", Toast.LENGTH_SHORT).show()
+                    },
+                    enabled = state.preview.isNotBlank()
+                )
             }
         }
 

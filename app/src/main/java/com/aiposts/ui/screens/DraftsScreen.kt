@@ -1,5 +1,6 @@
 package com.aiposts.ui.screens
 
+import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -11,15 +12,20 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.aiposts.model.PostDraft
 import com.aiposts.ui.components.GlassCard
+import com.aiposts.ui.components.PrimaryButton
 import com.aiposts.ui.theme.TextSecondary
 import java.time.format.DateTimeFormatter
 
 @Composable
 fun DraftsScreen(drafts: List<PostDraft>) {
     val formatter = DateTimeFormatter.ofPattern("MMM dd, yyyy • hh:mm a")
+    val clipboard = LocalClipboardManager.current
+    val context = LocalContext.current
 
     Column(
         modifier = Modifier
@@ -43,6 +49,14 @@ fun DraftsScreen(drafts: List<PostDraft>) {
                                 color = MaterialTheme.colorScheme.primary
                             )
                         }
+                        PrimaryButton(
+                            text = "Copy Draft",
+                            onClick = {
+                                clipboard.setText(androidx.compose.ui.text.AnnotatedString(draft.content))
+                                Toast.makeText(context, "Draft copied. Paste it on LinkedIn.", Toast.LENGTH_SHORT).show()
+                            },
+                            enabled = draft.content.isNotBlank()
+                        )
                     }
                 }
             }
