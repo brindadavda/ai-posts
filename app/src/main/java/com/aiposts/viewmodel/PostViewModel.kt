@@ -35,8 +35,23 @@ class PostViewModel(
             return
         }
 
+        val pendingDraft = PostDraft(
+            role = current.role,
+            topic = current.topic,
+            notes = current.notes,
+            content = "Generating your post..."
+        )
+        _drafts.update { listOf(pendingDraft) + it }
+
         viewModelScope.launch {
-            _createState.update { it.copy(isGenerating = true, errorMessage = null) }
+            _createState.update {
+                it.copy(
+                    isGenerating = true,
+                    errorMessage = null,
+                    preview = "",
+                    hasGeneratedPreview = false
+                )
+            }
             runCatching {
                 aiPostService.generateLinkedInPost(
                     role = current.role,
@@ -44,36 +59,38 @@ class PostViewModel(
                     notes = current.notes
                 )
             }.onSuccess { generated ->
-                _createState.update { it.copy(preview = generated, isGenerating = false) }
+                updateDraftContent(pendingDraft.id, generated)
+                _createState.update {
+                    it.copy(
+                        preview = generated,
+                        hasGeneratedPreview = true,
+                        isGenerating = false
+                    )
+                }
             }.onFailure {
                 _createState.update {
                     it.copy(
                         isGenerating = false,
-                        errorMessage = "Unable to generate post right now.",
-                        preview = "Try again to refresh your post preview."
+                        hasGeneratedPreview = false,
+                        errorMessage = "Unable to generate post right now. A draft has been saved, please retry."
                     )
                 }
             }
         }
     }
 
-    fun saveDraft() {
-        val current = _createState.value
-        if (current.preview.isBlank() || current.role.isBlank() || current.topic.isBlank()) return
-        val draft = PostDraft(
-            role = current.role,
-            topic = current.topic,
-            notes = current.notes,
-            content = current.preview
-        )
-        _drafts.update { listOf(draft) + it }
+    private fun updateDraftContent(draftId: String, generatedContent: String) {
+        _drafts.update { currentDrafts ->
+            currentDrafts.map { draft ->
+                if (draft.id == draftId) draft.copy(content = generatedContent) else draft
+            }
+        }
     }
 
-    fun scheduleLatestDraft(dateTime: LocalDateTime) {
+    fun scheduleDraft(draftId: String, dateTime: LocalDateTime) {
         _drafts.update { currentDrafts ->
-            if (currentDrafts.isEmpty()) currentDrafts else {
-                val latest = currentDrafts.first()
-                listOf(latest.copy(scheduledAt = dateTime)) + currentDrafts.drop(1)
+            currentDrafts.map { draft ->
+                if (draft.id == draftId) draft.copy(scheduledAt = dateTime) else draft
             }
         }
     }

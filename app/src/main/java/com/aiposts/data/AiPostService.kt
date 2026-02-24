@@ -50,11 +50,16 @@ class AiPostService(
     ): String {
 
         val prompt = buildString {
-            append("Create a professional LinkedIn post in a premium SaaS voice.")
-            append(" Role: $role.")
-            append(" Topic: $topic.")
-            if (notes.isNotBlank()) append(" Notes: $notes.")
-            append(" Keep it concise, engaging, and ready to publish.")
+            appendLine("Write a LinkedIn post for a $role.")
+            appendLine("Topic: $topic")
+            appendLine("Tone: Professional and engaging")
+            appendLine("Length: Short (4-5 lines)")
+            if (notes.isNotBlank()) {
+                appendLine()
+                appendLine("Notes: $notes")
+            }
+            appendLine()
+            appendLine("Add emojis and end with a question.")
         }
 
         return generatePost(prompt)
@@ -64,8 +69,6 @@ class AiPostService(
 
         val token = authTokenProvider()?.trim()
             ?: return "Token missing"
-
-        Log.d("XXXX TOken ",""+token)
 
         return try {
 
