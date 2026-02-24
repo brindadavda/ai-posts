@@ -33,7 +33,8 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun DraftsScreen(
     drafts: List<PostDraft>,
-    onDeleteDraft: (String) -> Unit
+    onDeleteDraft: (String) -> Unit,
+    onScheduleDraft: (String) -> Unit
 ) {
     val formatter = DateTimeFormatter.ofPattern("MMM dd, yyyy • hh:mm a")
     val clipboard = LocalClipboardManager.current
@@ -69,6 +70,10 @@ fun DraftsScreen(
                                 Toast.makeText(context, "Draft copied. Paste it on LinkedIn.", Toast.LENGTH_SHORT).show()
                             },
                             enabled = draft.content.isNotBlank()
+                        )
+                        PrimaryButton(
+                            text = "Set Reminder",
+                            onClick = { onScheduleDraft(draft.id) }
                         )
                         PrimaryButton(
                             text = "Delete Draft",

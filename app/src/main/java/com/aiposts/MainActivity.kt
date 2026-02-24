@@ -48,7 +48,7 @@ fun AiPostsApp(viewModel: PostViewModel = viewModel()) {
     val createState by viewModel.createState.collectAsStateWithLifecycle()
     val drafts by viewModel.drafts.collectAsStateWithLifecycle()
     var selectedTab by remember { mutableStateOf(Tab.Create) }
-    var showSheet by remember { mutableStateOf(false) }
+    var scheduleDraftId by remember { mutableStateOf<String?>(null) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     Scaffold(
@@ -82,27 +82,30 @@ fun AiPostsApp(viewModel: PostViewModel = viewModel()) {
                     onRoleChanged = viewModel::onRoleChanged,
                     onTopicChanged = viewModel::onTopicChanged,
                     onNotesChanged = viewModel::onNotesChanged,
-                    onGenerate = viewModel::generatePost,
-                    onSaveDraft = viewModel::saveDraft,
-                    onSchedule = { showSheet = true }
+                    onGenerate = viewModel::generatePost
                 )
 
                 Tab.Drafts -> DraftsScreen(
                     drafts = drafts,
-                    onDeleteDraft = viewModel::deleteDraft
+                    onDeleteDraft = viewModel::deleteDraft,
+                    onScheduleDraft = { draftId -> scheduleDraftId = draftId }
                 )
             }
         }
 
-        if (showSheet) {
+        if (scheduleDraftId != null) {
             ModalBottomSheet(
-                onDismissRequest = { showSheet = false },
+                onDismissRequest = { scheduleDraftId = null },
                 sheetState = sheetState,
                 containerColor = Background.copy(alpha = 0.95f)
             ) {
                 ScheduleBottomSheet(
-                    onConfirm = viewModel::scheduleLatestDraft,
-                    onDismiss = { showSheet = false }
+                    onConfirm = { dateTime ->
+                        scheduleDraftId?.let { draftId ->
+                            viewModel.scheduleDraft(draftId, dateTime)
+                        }
+                    },
+                    onDismiss = { scheduleDraftId = null }
                 )
             }
         }
