@@ -12,15 +12,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
@@ -76,6 +68,7 @@ fun CreatePostScreen(
             }
         }
 
+        // Error display
         AnimatedVisibility(
             visible = state.errorMessage != null,
             enter = fadeIn() + slideInVertically(),
@@ -90,6 +83,7 @@ fun CreatePostScreen(
             }
         }
 
+        // Generate Post Button
         PrimaryButton(
             text = if (state.isGenerating) "Generating Draft..." else "Generate Post",
             onClick = onGenerate,
@@ -100,11 +94,20 @@ fun CreatePostScreen(
 
         GlassCard(modifier = Modifier.fillMaxWidth()) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                if (state.hasGeneratedPreview) {
-                    Text(state.preview, style = MaterialTheme.typography.bodyLarge, color = TextSecondary)
-                } else {
-                    LoadingGlassOrb()
+                when {
+                    state.isGenerating -> LoadingGlassOrb(text = "Generating your professional post…")
+                    state.hasGeneratedPreview -> Text(
+                        state.preview,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = TextSecondary
+                    )
+                    else -> Text(
+                        "Fill in role, topic, and optional notes, then tap Generate Post to get your AI-crafted LinkedIn post.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = TextSecondary
+                    )
                 }
+
                 PrimaryButton(
                     text = "Copy Post",
                     onClick = {
@@ -121,7 +124,7 @@ fun CreatePostScreen(
 }
 
 @Composable
-private fun LoadingGlassOrb() {
+private fun LoadingGlassOrb(text: String) {
     val transition = rememberInfiniteTransition(label = "glassOrbTransition")
     val pulse = transition.animateFloat(
         initialValue = 0.9f,
@@ -160,7 +163,7 @@ private fun LoadingGlassOrb() {
             )
         }
         Text(
-            text = "Crafting your post with a glassy AI shimmer...",
+            text = text,
             style = MaterialTheme.typography.bodyMedium,
             color = TextSecondary
         )
