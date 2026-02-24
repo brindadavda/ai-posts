@@ -9,10 +9,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ButtonDefaults.textButtonColors
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextButtonDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -25,7 +25,7 @@ import androidx.compose.ui.unit.dp
 import com.aiposts.model.PostDraft
 import com.aiposts.ui.components.GlassCard
 import com.aiposts.ui.components.PrimaryButton
-import com.aiposts.ui.theme.SurfaceGlassStrong
+import com.aiposts.ui.theme.AlertBackgroundColor
 import com.aiposts.ui.theme.TextPrimary
 import com.aiposts.ui.theme.TextSecondary
 import java.time.format.DateTimeFormatter
@@ -83,7 +83,7 @@ fun DraftsScreen(
     draftPendingDelete?.let { draft ->
         AlertDialog(
             onDismissRequest = { draftPendingDelete = null },
-            containerColor = SurfaceGlassStrong,
+            containerColor = AlertBackgroundColor,
             titleContentColor = TextPrimary,
             textContentColor = TextSecondary,
             title = { Text("Delete Draft") },
@@ -94,7 +94,7 @@ fun DraftsScreen(
                         onDeleteDraft(draft.id)
                         draftPendingDelete = null
                     },
-                    colors = TextButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.primary)
+                    colors = textButtonColors(contentColor = MaterialTheme.colorScheme.primary)
                 ) {
                     Text("Delete")
                 }
@@ -102,7 +102,7 @@ fun DraftsScreen(
             dismissButton = {
                 TextButton(
                     onClick = { draftPendingDelete = null },
-                    colors = TextButtonDefaults.textButtonColors(contentColor = TextPrimary)
+                    colors = textButtonColors(contentColor = TextPrimary)
                 ) {
                     Text("Cancel")
                 }

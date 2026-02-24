@@ -10,3 +10,5 @@ val AccentMuted = Color(0xFF5D6AB0)
 val TextPrimary = Color(0xFFF2F4FA)
 val TextSecondary = Color(0xFFB2B8C8)
 val Border = Color(0x44C7D2FF)
+
+val AlertBackgroundColor = Color(0xFF121212)
