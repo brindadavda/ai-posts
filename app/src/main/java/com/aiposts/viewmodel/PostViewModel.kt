@@ -1,6 +1,7 @@
 package com.aiposts.viewmodel
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.aiposts.data.AiPostService
 import com.aiposts.model.CreatePostState
@@ -10,16 +11,21 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import org.json.JSONArray
+import org.json.JSONObject
 import java.time.LocalDateTime
 
 class PostViewModel(
+    application: Application,
     private val aiPostService: AiPostService = AiPostService()
-) : ViewModel() {
+) : AndroidViewModel(application) {
+
+    private val sharedPreferences = application.getSharedPreferences(PREFS_NAME, Application.MODE_PRIVATE)
 
     private val _createState = MutableStateFlow(CreatePostState())
     val createState: StateFlow<CreatePostState> = _createState.asStateFlow()
 
-    private val _drafts = MutableStateFlow<List<PostDraft>>(emptyList())
+    private val _drafts = MutableStateFlow<List<PostDraft>>(loadDrafts())
     val drafts: StateFlow<List<PostDraft>> = _drafts.asStateFlow()
 
     fun onRoleChanged(value: String) = _createState.update { it.copy(role = value, errorMessage = null) }
@@ -42,6 +48,7 @@ class PostViewModel(
             content = "Generating your post..."
         )
         _drafts.update { listOf(pendingDraft) + it }
+        persistDrafts()
 
         viewModelScope.launch {
             _createState.update {
@@ -85,6 +92,7 @@ class PostViewModel(
                 if (draft.id == draftId) draft.copy(content = generatedContent) else draft
             }
         }
+        persistDrafts()
     }
 
     fun scheduleDraft(draftId: String, dateTime: LocalDateTime) {
@@ -93,6 +101,7 @@ class PostViewModel(
                 if (draft.id == draftId) draft.copy(scheduledAt = dateTime) else draft
             }
         }
+        persistDrafts()
     }
 
     fun getDraftById(draftId: String): PostDraft? = _drafts.value.firstOrNull { it.id == draftId }
@@ -101,5 +110,48 @@ class PostViewModel(
         _drafts.update { currentDrafts ->
             currentDrafts.filterNot { it.id == draftId }
         }
+        persistDrafts()
+    }
+
+    private fun loadDrafts(): List<PostDraft> {
+        val draftsJson = sharedPreferences.getString(KEY_DRAFTS, null) ?: return emptyList()
+        return runCatching {
+            val jsonArray = JSONArray(draftsJson)
+            List(jsonArray.length()) { index ->
+                val item = jsonArray.getJSONObject(index)
+                PostDraft(
+                    id = item.getString("id"),
+                    role = item.getString("role"),
+                    topic = item.getString("topic"),
+                    notes = item.getString("notes"),
+                    content = item.getString("content"),
+                    scheduledAt = item.optString("scheduledAt")
+                        .takeIf { it.isNotBlank() }
+                        ?.let(LocalDateTime::parse),
+                    createdAt = LocalDateTime.parse(item.getString("createdAt"))
+                )
+            }
+        }.getOrDefault(emptyList())
+    }
+
+    private fun persistDrafts() {
+        val jsonArray = JSONArray()
+        _drafts.value.forEach { draft ->
+            val item = JSONObject()
+                .put("id", draft.id)
+                .put("role", draft.role)
+                .put("topic", draft.topic)
+                .put("notes", draft.notes)
+                .put("content", draft.content)
+                .put("scheduledAt", draft.scheduledAt?.toString().orEmpty())
+                .put("createdAt", draft.createdAt.toString())
+            jsonArray.put(item)
+        }
+        sharedPreferences.edit().putString(KEY_DRAFTS, jsonArray.toString()).apply()
+    }
+
+    companion object {
+        private const val PREFS_NAME = "post_drafts_prefs"
+        private const val KEY_DRAFTS = "drafts"
     }
 }
