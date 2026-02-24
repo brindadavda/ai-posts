@@ -77,4 +77,10 @@ class PostViewModel(
             }
         }
     }
+
+    fun deleteDraft(draftId: String) {
+        _drafts.update { currentDrafts ->
+            currentDrafts.filterNot { it.id == draftId }
+        }
+    }
 }
