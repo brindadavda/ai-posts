@@ -59,12 +59,6 @@ fun CreatePostScreen(
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 GlassTextField(value = state.role, onValueChange = onRoleChanged, label = "Role")
                 GlassTextField(value = state.topic, onValueChange = onTopicChanged, label = "Topic")
-                GlassTextField(
-                    value = state.notes,
-                    onValueChange = onNotesChanged,
-                    label = "Optional Notes",
-                    minLines = 3
-                )
             }
         }
 
