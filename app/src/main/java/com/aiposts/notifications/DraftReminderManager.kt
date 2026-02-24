@@ -7,40 +7,38 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Build
-import com.aiposts.MainActivity
 import com.aiposts.model.PostDraft
+import java.time.LocalDateTime
 
 class DraftReminderManager(private val context: Context) {
 
     private val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
     private val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-    fun schedule(draft: PostDraft) {
-        val scheduledAt = draft.scheduledAt ?: return
+    fun schedule(draftId: String, topic: String, scheduledAt: LocalDateTime) {
         createChannelIfNeeded()
 
-        val triggerAtMillis = scheduledAt.atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
+        val triggerAtMillis = scheduledAt
+            .atZone(java.time.ZoneId.systemDefault())
+            .toInstant()
+            .toEpochMilli()
+
+        val intent = Intent(context, ReminderReceiver::class.java).apply {
+            putExtra(ReminderReceiver.EXTRA_DRAFT_ID, draftId)
+            putExtra(ReminderReceiver.EXTRA_TOPIC, topic)
+        }
+
         val pendingIntent = PendingIntent.getBroadcast(
             context,
-            draft.id.hashCode(),
-            Intent(context, ReminderReceiver::class.java)
-                .putExtra(ReminderReceiver.EXTRA_DRAFT_ID, draft.id)
-                .putExtra(ReminderReceiver.EXTRA_TOPIC, draft.topic),
+            draftId.hashCode(),
+            intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
         if (canUseExactAlarms()) {
             alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent)
         } else {
-            val showIntent = PendingIntent.getActivity(
-                context,
-                draft.id.hashCode(),
-                Intent(context, MainActivity::class.java)
-                    .putExtra(EXTRA_OPEN_DRAFT_ID, draft.id)
-                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            )
-            alarmManager.setAlarmClock(AlarmManager.AlarmClockInfo(triggerAtMillis, showIntent), pendingIntent)
+            alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMillis, pendingIntent)
         }
     }
 

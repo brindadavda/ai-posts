@@ -41,6 +41,8 @@ import com.aiposts.viewmodel.PostViewModel
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+
+
         super.onCreate(savedInstanceState)
         WindowCompat.setDecorFitsSystemWindows(window, false)
         window.statusBarColor = android.graphics.Color.TRANSPARENT
@@ -140,8 +142,23 @@ fun AiPostsApp(viewModel: PostViewModel = viewModel(), openDraftId: String? = nu
                 ScheduleBottomSheet(
                     onConfirm = { dateTime ->
                         scheduleDraftId?.let { draftId ->
+
+                            val draft = viewModel.drafts.value.firstOrNull { it.id == draftId }
+
+                            if (draft == null) {
+                                android.util.Log.d("ReminderDebug", "Draft NOT FOUND")
+                                return@let
+                            }
+
+                            // Update state
                             viewModel.scheduleDraft(draftId, dateTime)
-                            viewModel.getDraftById(draftId)?.let { reminderManager.schedule(it) }
+
+                            // Schedule alarm with the correct dateTime directly
+                            reminderManager.schedule(
+                                draftId = draft.id,
+                                topic = draft.topic,
+                                scheduledAt = dateTime
+                            )
                         }
                     },
                     onDismiss = { scheduleDraftId = null }

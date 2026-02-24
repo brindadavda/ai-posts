@@ -11,6 +11,7 @@ import com.aiposts.R
 
 class ReminderReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
+        android.util.Log.d("ReminderReceiver", "ALARM TRIGGERED")
         val draftId = intent.getStringExtra(EXTRA_DRAFT_ID) ?: return
         val topic = intent.getStringExtra(EXTRA_TOPIC).orEmpty()
 
