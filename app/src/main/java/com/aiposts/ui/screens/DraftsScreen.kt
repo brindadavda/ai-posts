@@ -8,9 +8,15 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
@@ -22,10 +28,14 @@ import com.aiposts.ui.theme.TextSecondary
 import java.time.format.DateTimeFormatter
 
 @Composable
-fun DraftsScreen(drafts: List<PostDraft>) {
+fun DraftsScreen(
+    drafts: List<PostDraft>,
+    onDeleteDraft: (String) -> Unit
+) {
     val formatter = DateTimeFormatter.ofPattern("MMM dd, yyyy • hh:mm a")
     val clipboard = LocalClipboardManager.current
     val context = LocalContext.current
+    var draftPendingDelete by remember { mutableStateOf<PostDraft?>(null) }
 
     Column(
         modifier = Modifier
@@ -57,9 +67,36 @@ fun DraftsScreen(drafts: List<PostDraft>) {
                             },
                             enabled = draft.content.isNotBlank()
                         )
+                        PrimaryButton(
+                            text = "Delete Draft",
+                            onClick = { draftPendingDelete = draft }
+                        )
                     }
                 }
             }
         }
+    }
+
+    draftPendingDelete?.let { draft ->
+        AlertDialog(
+            onDismissRequest = { draftPendingDelete = null },
+            title = { Text("Delete Draft") },
+            text = { Text("Are you sure you want to delete this draft?") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onDeleteDraft(draft.id)
+                        draftPendingDelete = null
+                    }
+                ) {
+                    Text("Delete")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { draftPendingDelete = null }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 }

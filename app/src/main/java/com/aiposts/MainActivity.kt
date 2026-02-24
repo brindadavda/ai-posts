@@ -87,7 +87,10 @@ fun AiPostsApp(viewModel: PostViewModel = viewModel()) {
                     onSchedule = { showSheet = true }
                 )
 
-                Tab.Drafts -> DraftsScreen(drafts = drafts)
+                Tab.Drafts -> DraftsScreen(
+                    drafts = drafts,
+                    onDeleteDraft = viewModel::deleteDraft
+                )
             }
         }
 
