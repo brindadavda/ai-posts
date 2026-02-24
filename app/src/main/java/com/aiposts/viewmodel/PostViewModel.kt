@@ -24,17 +24,26 @@ class PostViewModel(
 
     private val sharedPreferences = application.getSharedPreferences(PREFS_NAME, Application.MODE_PRIVATE)
 
-    private val _createState = MutableStateFlow(CreatePostState())
+    private val _createState = MutableStateFlow(loadCreateState())
     val createState: StateFlow<CreatePostState> = _createState.asStateFlow()
 
-    private val _drafts = MutableStateFlow<List<PostDraft>>(loadDrafts())
+    private val _drafts = MutableStateFlow(loadDrafts())
     val drafts: StateFlow<List<PostDraft>> = _drafts.asStateFlow()
 
-    fun onRoleChanged(value: String) = _createState.update { it.copy(role = value, errorMessage = null) }
+    fun onRoleChanged(value: String) {
+        _createState.update { it.copy(role = value, errorMessage = null) }
+        persistCreateState()
+    }
 
-    fun onTopicChanged(value: String) = _createState.update { it.copy(topic = value, errorMessage = null) }
+    fun onTopicChanged(value: String) {
+        _createState.update { it.copy(topic = value, errorMessage = null) }
+        persistCreateState()
+    }
 
-    fun onNotesChanged(value: String) = _createState.update { it.copy(notes = value, errorMessage = null) }
+    fun onNotesChanged(value: String) {
+        _createState.update { it.copy(notes = value, errorMessage = null) }
+        persistCreateState()
+    }
 
     fun generatePost() {
         val current = _createState.value
@@ -61,6 +70,8 @@ class PostViewModel(
                     hasGeneratedPreview = false
                 )
             }
+            persistCreateState()
+
             runCatching {
                 aiPostService.generateLinkedInPost(
                     role = current.role,
@@ -76,6 +87,7 @@ class PostViewModel(
                         isGenerating = false
                     )
                 }
+                persistCreateState()
             }.onFailure {
                 _createState.update {
                     it.copy(
@@ -84,6 +96,7 @@ class PostViewModel(
                         errorMessage = "Unable to generate post right now. A draft has been saved, please retry."
                     )
                 }
+                persistCreateState()
             }
         }
     }
@@ -115,23 +128,69 @@ class PostViewModel(
         persistDrafts()
     }
 
+    private fun loadCreateState(): CreatePostState {
+        val json = sharedPreferences.getString(KEY_CREATE_STATE, null) ?: return CreatePostState()
+        return runCatching {
+            val obj = JSONObject(json)
+            CreatePostState(
+                role = obj.optString("role"),
+                topic = obj.optString("topic"),
+                notes = obj.optString("notes"),
+                preview = obj.optString("preview"),
+                hasGeneratedPreview = obj.optBoolean("hasGeneratedPreview", false),
+                isGenerating = false,
+                errorMessage = null
+            )
+        }.getOrDefault(CreatePostState())
+    }
+
+    private fun persistCreateState() {
+        val state = _createState.value
+        val obj = JSONObject()
+            .put("role", state.role)
+            .put("topic", state.topic)
+            .put("notes", state.notes)
+            .put("preview", state.preview)
+            .put("hasGeneratedPreview", state.hasGeneratedPreview)
+
+        sharedPreferences.edit().putString(KEY_CREATE_STATE, obj.toString()).commit()
+    }
+
     private fun loadDrafts(): List<PostDraft> {
         val draftsJson = sharedPreferences.getString(KEY_DRAFTS, null) ?: return emptyList()
         return runCatching {
             val jsonArray = JSONArray(draftsJson)
-            List(jsonArray.length()) { index ->
-                val item = jsonArray.getJSONObject(index)
-                PostDraft(
-                    id = item.getString("id"),
-                    role = item.getString("role"),
-                    topic = item.getString("topic"),
-                    notes = item.getString("notes"),
-                    content = item.getString("content"),
-                    scheduledAt = item.optString("scheduledAt")
+            buildList {
+                for (index in 0 until jsonArray.length()) {
+                    val item = jsonArray.optJSONObject(index) ?: continue
+                    val id = item.optString("id")
+                    val role = item.optString("role")
+                    val topic = item.optString("topic")
+                    val notes = item.optString("notes")
+                    val content = item.optString("content")
+                    if (id.isBlank() || role.isBlank() || topic.isBlank() || content.isBlank()) continue
+
+                    val scheduledAt = item.optString("scheduledAt")
                         .takeIf { it.isNotBlank() }
-                        ?.let(LocalDateTime::parse),
-                    createdAt = LocalDateTime.parse(item.getString("createdAt"))
-                )
+                        ?.let { runCatching { LocalDateTime.parse(it) }.getOrNull() }
+
+                    val createdAt = item.optString("createdAt")
+                        .takeIf { it.isNotBlank() }
+                        ?.let { runCatching { LocalDateTime.parse(it) }.getOrNull() }
+                        ?: LocalDateTime.now()
+
+                    add(
+                        PostDraft(
+                            id = id,
+                            role = role,
+                            topic = topic,
+                            notes = notes,
+                            content = content,
+                            scheduledAt = scheduledAt,
+                            createdAt = createdAt
+                        )
+                    )
+                }
             }
         }.getOrDefault(emptyList())
     }
@@ -149,12 +208,13 @@ class PostViewModel(
                 .put("createdAt", draft.createdAt.toString())
             jsonArray.put(item)
         }
-        sharedPreferences.edit().putString(KEY_DRAFTS, jsonArray.toString()).apply()
+        sharedPreferences.edit().putString(KEY_DRAFTS, jsonArray.toString()).commit()
     }
 
     companion object {
         private const val PREFS_NAME = "post_drafts_prefs"
         private const val KEY_DRAFTS = "drafts"
+        private const val KEY_CREATE_STATE = "create_state"
 
         fun factory(application: Application): ViewModelProvider.Factory =
             object : ViewModelProvider.Factory {
