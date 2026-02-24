@@ -95,6 +95,8 @@ class PostViewModel(
         }
     }
 
+    fun getDraftById(draftId: String): PostDraft? = _drafts.value.firstOrNull { it.id == draftId }
+
     fun deleteDraft(draftId: String) {
         _drafts.update { currentDrafts ->
             currentDrafts.filterNot { it.id == draftId }
