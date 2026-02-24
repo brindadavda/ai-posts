@@ -14,6 +14,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Alarm
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.FilterList
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults.textButtonColors
 import androidx.compose.material3.FilterChip
@@ -36,7 +37,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.aiposts.model.PostDraft
 import com.aiposts.ui.components.GlassCard
-import com.aiposts.ui.components.GlassTextField
 import com.aiposts.ui.components.PrimaryButton
 import com.aiposts.ui.theme.AlertBackgroundColor
 import com.aiposts.ui.theme.TextPrimary
@@ -62,21 +62,31 @@ fun DraftsScreen(
     val context = LocalContext.current
     val listState = rememberLazyListState()
     var draftPendingDelete by remember { mutableStateOf<PostDraft?>(null) }
-    var filterType by rememberSaveable { mutableStateOf(DraftFilterType.Date) }
-    var filterQuery by rememberSaveable { mutableStateOf("") }
-    val normalizedQuery = filterQuery.trim().lowercase()
+    var showFilterDialog by rememberSaveable { mutableStateOf(false) }
+    var activeFilterType by rememberSaveable { mutableStateOf<DraftFilterType?>(null) }
+    var activeFilterValue by rememberSaveable { mutableStateOf<String?>(null) }
 
-    val filteredDrafts = remember(drafts, filterType, normalizedQuery) {
-        if (normalizedQuery.isBlank()) {
+    val filteredDrafts = remember(drafts, activeFilterType, activeFilterValue) {
+        if (activeFilterType == null || activeFilterValue == null) {
             drafts
         } else {
             drafts.filter { draft ->
-                when (filterType) {
-                    DraftFilterType.Date -> draft.createdAt.format(dateFilterFormatter).contains(normalizedQuery)
-                    DraftFilterType.Role -> draft.role.lowercase().contains(normalizedQuery)
-                    DraftFilterType.Topic -> draft.topic.lowercase().contains(normalizedQuery)
+                when (activeFilterType) {
+                    DraftFilterType.Date -> draft.createdAt.format(dateFilterFormatter) == activeFilterValue
+                    DraftFilterType.Role -> draft.role == activeFilterValue
+                    DraftFilterType.Topic -> draft.topic == activeFilterValue
+                    null -> true
                 }
             }
+        }
+    }
+
+    val currentFilterOptions = remember(drafts, activeFilterType) {
+        when (activeFilterType) {
+            DraftFilterType.Date -> drafts.map { it.createdAt.format(dateFilterFormatter) }.distinct().sortedDescending()
+            DraftFilterType.Role -> drafts.map { it.role }.distinct().sorted()
+            DraftFilterType.Topic -> drafts.map { it.topic }.distinct().sorted()
+            null -> emptyList()
         }
     }
 
@@ -91,24 +101,24 @@ fun DraftsScreen(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Text("Saved Drafts", style = MaterialTheme.typography.headlineSmall)
-
-        Text("Filter drafts", style = MaterialTheme.typography.titleSmall, color = TextSecondary)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            DraftFilterType.entries.forEach { type ->
-                FilterChip(
-                    selected = filterType == type,
-                    onClick = { filterType = type },
-                    label = { Text(type.label) }
-                )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("Saved Drafts", style = MaterialTheme.typography.headlineSmall)
+            IconButton(onClick = { showFilterDialog = true }) {
+                Icon(Icons.Outlined.FilterList, contentDescription = "Open filters")
             }
         }
 
-        GlassTextField(
-            value = filterQuery,
-            onValueChange = { filterQuery = it },
-            label = "Search by ${filterType.label.lowercase()}"
-        )
+        if (activeFilterType != null && activeFilterValue != null) {
+            Text(
+                text = "Filter: ${activeFilterType?.label} • $activeFilterValue",
+                style = MaterialTheme.typography.bodyMedium,
+                color = TextSecondary
+            )
+        }
 
         LazyColumn(
             state = listState,
@@ -171,6 +181,77 @@ fun DraftsScreen(
                 }
             }
         }
+    }
+
+    if (showFilterDialog) {
+        AlertDialog(
+            onDismissRequest = { showFilterDialog = false },
+            containerColor = AlertBackgroundColor,
+            titleContentColor = TextPrimary,
+            textContentColor = TextSecondary,
+            title = { Text("Filter drafts") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text("Filter by", style = MaterialTheme.typography.titleSmall, color = TextSecondary)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        DraftFilterType.entries.forEach { type ->
+                            FilterChip(
+                                selected = activeFilterType == type,
+                                onClick = {
+                                    activeFilterType = type
+                                    activeFilterValue = null
+                                },
+                                label = { Text(type.label) }
+                            )
+                        }
+                    }
+
+                    if (activeFilterType != null) {
+                        Text("Select ${activeFilterType?.label}", style = MaterialTheme.typography.titleSmall, color = TextSecondary)
+                        if (currentFilterOptions.isEmpty()) {
+                            Text("No saved values available.", style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
+                        } else {
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                currentFilterOptions.forEach { option ->
+                                    FilterChip(
+                                        selected = activeFilterValue == option,
+                                        onClick = { activeFilterValue = option },
+                                        label = { Text(option) }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = { showFilterDialog = false },
+                    colors = textButtonColors(contentColor = MaterialTheme.colorScheme.primary)
+                ) {
+                    Text("Apply")
+                }
+            },
+            dismissButton = {
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    TextButton(
+                        onClick = {
+                            activeFilterType = null
+                            activeFilterValue = null
+                        },
+                        colors = textButtonColors(contentColor = TextPrimary)
+                    ) {
+                        Text("Clear")
+                    }
+                    TextButton(
+                        onClick = { showFilterDialog = false },
+                        colors = textButtonColors(contentColor = TextPrimary)
+                    ) {
+                        Text("Close")
+                    }
+                }
+            }
+        )
     }
 
     draftPendingDelete?.let { draft ->
