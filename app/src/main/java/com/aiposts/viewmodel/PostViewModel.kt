@@ -2,6 +2,8 @@ package com.aiposts.viewmodel
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.aiposts.data.AiPostService
 import com.aiposts.model.CreatePostState
@@ -153,5 +155,16 @@ class PostViewModel(
     companion object {
         private const val PREFS_NAME = "post_drafts_prefs"
         private const val KEY_DRAFTS = "drafts"
+
+        fun factory(application: Application): ViewModelProvider.Factory =
+            object : ViewModelProvider.Factory {
+                override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                    if (modelClass.isAssignableFrom(PostViewModel::class.java)) {
+                        @Suppress("UNCHECKED_CAST")
+                        return PostViewModel(application) as T
+                    }
+                    throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
+                }
+            }
     }
 }

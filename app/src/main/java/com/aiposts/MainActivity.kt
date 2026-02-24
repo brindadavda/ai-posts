@@ -1,6 +1,7 @@
 package com.aiposts
 
 import android.Manifest
+import android.app.Application
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -65,8 +66,10 @@ private enum class Tab { Create, Drafts }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AiPostsApp(viewModel: PostViewModel = viewModel(), openDraftId: String? = null) {
+fun AiPostsApp(openDraftId: String? = null) {
     val context = LocalContext.current
+    val application = context.applicationContext as Application
+    val viewModel: PostViewModel = viewModel(factory = remember(application) { PostViewModel.factory(application) })
     val createState by viewModel.createState.collectAsStateWithLifecycle()
     val drafts by viewModel.drafts.collectAsStateWithLifecycle()
     val reminderManager = remember(context) { DraftReminderManager(context) }
