@@ -1,5 +1,6 @@
 package com.aiposts.ui.screens
 
+import PlatformDropdown
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.RepeatMode
@@ -41,6 +42,7 @@ fun CreatePostScreen(
     onRoleChanged: (String) -> Unit,
     onTopicChanged: (String) -> Unit,
     onNotesChanged: (String) -> Unit,
+    onPlatformChanged: (String) -> Unit,
     onGenerate: () -> Unit
 ) {
     val clipboard = LocalClipboardManager.current
@@ -53,10 +55,11 @@ fun CreatePostScreen(
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Text("Create LinkedIn Post", style = MaterialTheme.typography.headlineSmall)
+        Text("Create ${state.platform} Post",style = MaterialTheme.typography.headlineSmall)
 
         GlassCard {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                PlatformDropdown(selected = state.platform, onSelected = onPlatformChanged)
                 GlassTextField(value = state.role, onValueChange = onRoleChanged, label = "Role")
                 GlassTextField(value = state.topic, onValueChange = onTopicChanged, label = "Topic")
             }

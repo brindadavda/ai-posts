@@ -8,6 +8,7 @@ data class PostDraft(
     val role: String,
     val topic: String,
     val notes: String,
+    val platform: String,
     val content: String,
     val scheduledAt: LocalDateTime? = null,
     val createdAt: LocalDateTime = LocalDateTime.now()

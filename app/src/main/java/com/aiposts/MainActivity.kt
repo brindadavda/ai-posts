@@ -121,6 +121,7 @@ fun AiPostsApp(openDraftId: String? = null) {
                     onRoleChanged = viewModel::onRoleChanged,
                     onTopicChanged = viewModel::onTopicChanged,
                     onNotesChanged = viewModel::onNotesChanged,
+                    onPlatformChanged= viewModel::onPlatformChanged,
                     onGenerate = viewModel::generatePost
                 )
 

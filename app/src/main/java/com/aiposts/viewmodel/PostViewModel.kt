@@ -45,6 +45,13 @@ class PostViewModel(
         persistCreateState()
     }
 
+    fun onPlatformChanged(value: String) {
+        _createState.update {
+            it.copy(platform = value, errorMessage = null)
+        }
+        persistCreateState()
+    }
+
     fun generatePost() {
         val current = _createState.value
         if (current.role.isBlank() || current.topic.isBlank()) {
@@ -56,6 +63,7 @@ class PostViewModel(
             role = current.role,
             topic = current.topic,
             notes = current.notes,
+            platform = current.platform,
             content = "Generating your post..."
         )
         _drafts.update { listOf(pendingDraft) + it }
@@ -73,7 +81,14 @@ class PostViewModel(
             persistCreateState()
 
             runCatching {
-                aiPostService.generateLinkedInPost(
+//                aiPostService.generateLinkedInPost(
+//                    role = current.role,
+//                    topic = current.topic,
+//                    notes = current.notes
+//                )
+
+                aiPostService.generatePostForPlatform(
+                    platform = current.platform,
                     role = current.role,
                     topic = current.topic,
                     notes = current.notes
@@ -137,6 +152,7 @@ class PostViewModel(
                 topic = obj.optString("topic"),
                 notes = obj.optString("notes"),
                 preview = obj.optString("preview"),
+                platform = obj.optString("platform"),
                 hasGeneratedPreview = obj.optBoolean("hasGeneratedPreview", false),
                 isGenerating = false,
                 errorMessage = null
@@ -151,6 +167,7 @@ class PostViewModel(
             .put("topic", state.topic)
             .put("notes", state.notes)
             .put("preview", state.preview)
+            .put("platform", state.platform)
             .put("hasGeneratedPreview", state.hasGeneratedPreview)
 
         sharedPreferences.edit().putString(KEY_CREATE_STATE, obj.toString()).commit()
@@ -167,6 +184,7 @@ class PostViewModel(
                     val role = item.optString("role")
                     val topic = item.optString("topic")
                     val notes = item.optString("notes")
+                    val platform = item.optString("platform")
                     val content = item.optString("content")
                     if (id.isBlank() || role.isBlank() || topic.isBlank() || content.isBlank()) continue
 
@@ -185,6 +203,7 @@ class PostViewModel(
                             role = role,
                             topic = topic,
                             notes = notes,
+                            platform = platform,
                             content = content,
                             scheduledAt = scheduledAt,
                             createdAt = createdAt
@@ -204,6 +223,7 @@ class PostViewModel(
                 .put("topic", draft.topic)
                 .put("notes", draft.notes)
                 .put("content", draft.content)
+                .put("platform", draft.platform)
                 .put("scheduledAt", draft.scheduledAt?.toString().orEmpty())
                 .put("createdAt", draft.createdAt.toString())
             jsonArray.put(item)
